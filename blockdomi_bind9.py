@@ -108,6 +108,6 @@ def main(var_domain):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Uso: python3/etc/bind/scripts/block_bind9.py sub.dominio.com.br")
+        print("Uso: python3/etc/bind/scripts/blockdomi_bind9.py sub.dominio.com.br")
         sys.exit(1)
     main(sys.argv[1])
