@@ -107,19 +107,19 @@ def main(var_domain):
     """
     version_url = 'https://api.blockdomi.com.br/domain/version'
     domain_list_url = 'https://api.blockdomi.com.br/domain/all'
-    version_file_path = '/var/cache/unbound/rpz/version'
-    domain_list_path = '/var/cache/unbound/rpz/domain_all'
-    rpz_zone_file = '/var/cache/unbound/rpz/db.rpz.block.zone.hosts'
+    version_file_path = '/etc/unbound/rpz/version'
+    domain_list_path = '/etc/unbound/rpz/domain_all'
+    rpz_zone_file = '/etc/unbound/rpz/db.rpz.block.zone.hosts'
 
     if download_and_update_version(version_url, version_file_path):
         download_file(domain_list_url, domain_list_path)
         create_rpz_zone_file(domain_list_path, rpz_zone_file, var_domain)
         print("Arquivo de zona RPZ atualizado.")
-        change_permissions('/var/cache/unbound/rpz/')
+        change_permissions('/etc/unbound/rpz/')
         restart_unbound_service()
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Uso: python3/etc/unbound/anablock_unbound.py sub.dominio.com.br")
+        print("Uso: python3/etc/unbound/blockdomi_unbound.py sub.dominio.com.br")
         sys.exit(1)
     main(sys.argv[1])
