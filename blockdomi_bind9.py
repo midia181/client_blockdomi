@@ -83,13 +83,24 @@ def create_rpz_zone_file(domain_file, output_file, var_domain):
 
 def restart_bind_service():
     """
-    Reinicia o serviço Bind9.
+    Reinicia o serviço Bind9 somente se a configuração estiver correta.
     """
     try:
-        subprocess.run(['systemctl', 'restart', 'bind9'], check=True)
-        print(colored("Serviço Bind9 reiniciado com sucesso.", 'green'))
+        # Verifica se a configuração do Bind9 tem erros de sintaxe
+        check_result = subprocess.run(['named-checkconf'], capture_output=True, text=True)
+        if check_result.returncode == 0:  # Sem erros de sintaxe
+            # Reinicia o serviço Bind9
+            restart_result = subprocess.run(['systemctl', 'restart', 'bind9'], capture_output=True, text=True)
+            if restart_result.returncode == 0:
+                print(colored("Serviço Bind9 reiniciado com sucesso.", 'green'))
+            else:
+                print("Erro ao reiniciar o serviço Bind9:")
+                print(restart_result.stderr)
+        else:
+            print(colored("Erro na configuração do Bind9:", 'red'))
+            print(colored(check_result.stderr, 'red'))
     except subprocess.CalledProcessError as e:
-        print(f"Falha ao reiniciar o serviço Bind9: {e}")
+        print(f"Erro ao verificar a configuração do Bind9: {e}")
 
 def change_permissions(directory):
     """
@@ -107,18 +118,18 @@ def main(var_domain):
     """
     domain_list_url = 'https://api.blockdomi.com.br/domain/all'
     version_url = 'https://api.blockdomi.com.br/domain/version'
-    version_file_path = '/var/cache/bind/rpz/version'
-    domain_list_path = '/var/cache/bind/rpz/domain_all'
-    rpz_zone_file = '/var/cache/bind/rpz/db.rpz.zone.hosts'
+    version_file_path = '/etc/bind/rpz/version'
+    domain_list_path = '/etc/bind/rpz/domain_all'
+    rpz_zone_file = '/etc/bind/rpz/db.rpz.zone.hosts'
 
     # Garante que o diretório /var/cache/bind/rpz exista
-    ensure_directory_exists('/var/cache/bind/rpz')
+    ensure_directory_exists('/etc/bind/rpz/')
 
     if download_and_update_version(version_url, version_file_path):
         download_file(domain_list_url, domain_list_path)
         create_rpz_zone_file(domain_list_path, rpz_zone_file, var_domain)
         print(colored("Arquivo de zona RPZ atualizado.", 'green'))
-        change_permissions('/var/cache/bind/rpz/')
+        change_permissions('/etc/bind/rpz/')
         restart_bind_service()
 
 if __name__ == "__main__":
