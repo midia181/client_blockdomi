@@ -4,6 +4,16 @@ import sys
 import datetime
 import subprocess
 
+def ensure_directory_exists(directory):
+    """
+    Garante que o diretório exista, criando-o se necessário.
+    """
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        print(f"Diretório {directory} criado com sucesso.")
+    else:
+        print(f"Diretório {directory} já existe.")
+
 def download_file(url, filename):
     """
     Baixa um arquivo de uma URL e o salva localmente.
@@ -37,6 +47,7 @@ def download_and_update_version(url, file_path):
             needs_update = True
         else:
             os.remove(temp_file_path)
+            print("Já está na versão mais atual.")
     else:
         download_file(url, file_path)
         needs_update = True
@@ -99,6 +110,9 @@ def main(var_domain):
     domain_list_path = '/var/cache/bind/rpz/domain_all'
     rpz_zone_file = '/var/cache/bind/rpz/db.rpz.zone.hosts'
 
+    # Garante que o diretório /var/cache/bind/rpz exista
+    ensure_directory_exists('/var/cache/bind/rpz')
+
     if download_and_update_version(version_url, version_file_path):
         download_file(domain_list_url, domain_list_path)
         create_rpz_zone_file(domain_list_path, rpz_zone_file, var_domain)
@@ -108,6 +122,6 @@ def main(var_domain):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Uso: python3/etc/bind/scripts/blockdomi_bind9.py sub.dominio.com.br")
+        print("Uso: python3 /etc/bind/scripts/blockdomi_bind9.py sub.dominio.com.br")
         sys.exit(1)
     main(sys.argv[1])
