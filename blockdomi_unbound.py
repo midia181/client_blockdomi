@@ -3,6 +3,7 @@ import requests
 import sys
 import datetime
 import subprocess
+from termcolor import colored
 
 def ensure_directory_exists(directory):
     """
@@ -10,9 +11,9 @@ def ensure_directory_exists(directory):
     """
     if not os.path.exists(directory):
         os.makedirs(directory)
-        print(f"Diretório {directory} criado com sucesso.")
+        print(colored(f"Diretório {directory} criado com sucesso.", 'green'))
     else:
-        print(f"Diretório {directory} já existe.")
+        print(colored(f"Diretório {directory} já existe.", 'green'))
 
 def download_file(url, filename):
     """
@@ -47,7 +48,7 @@ def download_and_update_version(url, file_path):
             needs_update = True
         else:
             os.remove(temp_file_path)
-            print("Já está na versão mais atual.")
+            print(colored("Já está na versão mais atual.", 'green'))
     else:
         download_file(url, file_path)
         needs_update = True
@@ -91,7 +92,7 @@ def restart_unbound_service():
             # Reinicia o serviço Unbound
             restart_result = subprocess.run(['service', 'unbound', 'restart'], capture_output=True, text=True)
             if restart_result.returncode == 0:
-                print("Serviço Unbound reiniciado com sucesso.")
+                print(colored("Serviço Unbound reiniciado com sucesso.", 'green'))
             else:
                 print("Erro ao reiniciar o serviço Unbound:")
                 print(restart_result.stderr)
@@ -107,7 +108,7 @@ def change_permissions(directory):
     """
     try:
         subprocess.run(['chown', 'unbound:unbound', directory, '-R'], check=True)
-        print("Permissões do diretório alteradas com sucesso.")
+        print(colored("Permissões do diretório alteradas com sucesso.", 'green'))
     except subprocess.CalledProcessError as e:
         print(f"Falha ao alterar as permissões do diretório: {e}")
 
@@ -127,7 +128,7 @@ def main(var_domain):
     if download_and_update_version(version_url, version_file_path):
         download_file(domain_list_url, domain_list_path)
         create_rpz_zone_file(domain_list_path, rpz_zone_file, var_domain)
-        print("Arquivo de zona RPZ atualizado.")
+        print(colored("Arquivo de zona RPZ atualizado.", 'green'))
         change_permissions('/etc/unbound/rpz/')
         restart_unbound_service()
 
