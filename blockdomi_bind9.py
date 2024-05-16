@@ -3,6 +3,7 @@ import requests
 import sys
 import datetime
 import subprocess
+from termcolor import colored
 
 def ensure_directory_exists(directory):
     """
@@ -10,9 +11,9 @@ def ensure_directory_exists(directory):
     """
     if not os.path.exists(directory):
         os.makedirs(directory)
-        print(f"Diretório {directory} criado com sucesso.")
+        print(colored(f"Diretório {directory} criado com sucesso.", 'green'))
     else:
-        print(f"Diretório {directory} já existe.")
+        print(colored(f"Diretório {directory} já existe.", 'green'))
 
 def download_file(url, filename):
     """
@@ -47,7 +48,7 @@ def download_and_update_version(url, file_path):
             needs_update = True
         else:
             os.remove(temp_file_path)
-            print("Já está na versão mais atual.")
+            print(colored("Já está na versão mais atual.", 'green'))
     else:
         download_file(url, file_path)
         needs_update = True
@@ -86,7 +87,7 @@ def restart_bind_service():
     """
     try:
         subprocess.run(['systemctl', 'restart', 'bind9'], check=True)
-        print("Serviço Bind9 reiniciado com sucesso.")
+        print(colored("Serviço Bind9 reiniciado com sucesso.", 'green'))
     except subprocess.CalledProcessError as e:
         print(f"Falha ao reiniciar o serviço Bind9: {e}")
 
@@ -96,7 +97,7 @@ def change_permissions(directory):
     """
     try:
         subprocess.run(['chown', 'bind:bind', directory, '-R'], check=True)
-        print("Permissões do diretório alteradas com sucesso.")
+        print(colored("Permissões do diretório alteradas com sucesso.", 'green'))
     except subprocess.CalledProcessError as e:
         print(f"Falha ao alterar as permissões do diretório: {e}")
 
@@ -116,12 +117,12 @@ def main(var_domain):
     if download_and_update_version(version_url, version_file_path):
         download_file(domain_list_url, domain_list_path)
         create_rpz_zone_file(domain_list_path, rpz_zone_file, var_domain)
-        print("Arquivo de zona RPZ atualizado.")
+        print(colored("Arquivo de zona RPZ atualizado.", 'green'))
         change_permissions('/var/cache/bind/rpz/')
         restart_bind_service()
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Uso: python3 /etc/bind/scripts/blockdomi_bind9.py sub.dominio.com.br")
+        print(colored("Uso: python3 /etc/bind/scripts/blockdomi_bind9.py sub.dominio.com.br", 'red'))
         sys.exit(1)
     main(sys.argv[1])
