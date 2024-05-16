@@ -4,6 +4,16 @@ import sys
 import datetime
 import subprocess
 
+def ensure_directory_exists(directory):
+    """
+    Garante que o diretório exista, criando-o se necessário.
+    """
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        print(f"Diretório {directory} criado com sucesso.")
+    else:
+        print(f"Diretório {directory} já existe.")
+
 def download_file(url, filename):
     """
     Baixa um arquivo de uma URL e o salva localmente.
@@ -90,7 +100,6 @@ def restart_unbound_service():
     except subprocess.CalledProcessError as e:
         print(f"Erro ao verificar a configuração do Unbound: {e}")
 
-
 def change_permissions(directory):
     """
     Altera as permissões de um diretório e seu conteúdo.
@@ -111,6 +120,9 @@ def main(var_domain):
     domain_list_path = '/etc/unbound/rpz/domain_all'
     rpz_zone_file = '/etc/unbound/rpz/db.rpz.block.zone.hosts'
 
+    # Garante que o diretório /etc/unbound/rpz exista
+    ensure_directory_exists('/etc/unbound/rpz')
+
     if download_and_update_version(version_url, version_file_path):
         download_file(domain_list_url, domain_list_path)
         create_rpz_zone_file(domain_list_path, rpz_zone_file, var_domain)
@@ -120,6 +132,6 @@ def main(var_domain):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Uso: python3/etc/unbound/blockdomi_unbound.py sub.dominio.com.br")
+        print("Uso: python3 /etc/unbound/scripts/blockdomi_unbound.py sub.dominio.com.br")
         sys.exit(1)
     main(sys.argv[1])
