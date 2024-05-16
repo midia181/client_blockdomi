@@ -47,6 +47,7 @@ def download_and_update_version(url, file_path):
             needs_update = True
         else:
             os.remove(temp_file_path)
+            print("Já está na versão mais atual.")
     else:
         download_file(url, file_path)
         needs_update = True
