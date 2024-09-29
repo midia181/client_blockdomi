@@ -81,26 +81,27 @@ def create_rpz_zone_file(domain_file, output_file, var_domain):
             output.write(f"{domain} IN CNAME .\n")
             output.write(f"*.{domain} IN CNAME .\n")
 
-def restart_bind_service():
+def reload_bind_service():
     """
-    Reinicia o serviço Bind9 somente se a configuração estiver correta.
+    Recarrega o serviço Bind9 somente se a configuração estiver correta.
     """
     try:
         # Verifica se a configuração do Bind9 tem erros de sintaxe
         check_result = subprocess.run(['named-checkconf'], capture_output=True, text=True)
         if check_result.returncode == 0:  # Sem erros de sintaxe
-            # Reinicia o serviço Bind9
-            restart_result = subprocess.run(['systemctl', 'restart', 'bind9'], capture_output=True, text=True)
-            if restart_result.returncode == 0:
-                print(colored("Serviço Bind9 reiniciado com sucesso.", 'green'))
+            # Recarrega o serviço Bind9
+            reload_result = subprocess.run(['systemctl', 'reload', 'bind9'], capture_output=True, text=True)
+            if reload_result.returncode == 0:
+                print(colored("Serviço Bind9 recarregado com sucesso.", 'green'))
             else:
-                print("Erro ao reiniciar o serviço Bind9:")
-                print(restart_result.stderr)
+                print("Erro ao recarregar o serviço Bind9:")
+                print(reload_result.stderr)
         else:
             print(colored("Erro na configuração do Bind9:", 'red'))
             print(colored(check_result.stderr, 'red'))
     except subprocess.CalledProcessError as e:
         print(f"Erro ao verificar a configuração do Bind9: {e}")
+
 
 def change_permissions(directory):
     """
@@ -130,7 +131,8 @@ def main(var_domain):
         create_rpz_zone_file(domain_list_path, rpz_zone_file, var_domain)
         print(colored("Arquivo de zona RPZ atualizado.", 'green'))
         change_permissions('/etc/bind/rpz/')
-        restart_bind_service()
+        reload_bind_service()  # Agora utilizando reload em vez de restart
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
