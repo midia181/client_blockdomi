@@ -31,6 +31,17 @@ def get_sequential_number_from_file(filename):
     with open(filename, 'r') as file:
         return int(file.read().strip())
 
+def parse_serial(serial):
+    """
+    Divide o número de série em data e modificações.
+    Exemplo: 2024100102 -> ('20241001', 02)
+    """
+    # Os 8 primeiros caracteres são a data (AAAAMMDD)
+    # O restante é o número de modificações no dia
+    date_part = serial[:8]
+    modification_part = int(serial[8:])  # O número de modificações deve ser comparado numericamente
+    return date_part, modification_part
+
 def download_and_update_version(url, file_path):
     """
     Verifica e atualiza o arquivo de versão se o número de série for diferente.
@@ -41,14 +52,23 @@ def download_and_update_version(url, file_path):
     # Baixa o número de série da URL
     temp_file_path = '/tmp/version_temp'
     download_file(url, temp_file_path)
-    new_seq_number = get_sequential_number_from_file(temp_file_path)
+    new_seq_number = str(get_sequential_number_from_file(temp_file_path))  # Força a conversão para string
 
     # Verifica o número de série atual do arquivo local
     if os.path.exists(file_path):
-        current_seq_number = get_sequential_number_from_file(file_path)
+        current_seq_number = str(get_sequential_number_from_file(file_path))  # Força a conversão para string
 
-        # Comparação como strings para preservar a ordem correta
-        if str(new_seq_number) > str(current_seq_number):
+        # Divide os números de série em partes de data e modificações
+        new_date, new_modifications = parse_serial(new_seq_number)
+        current_date, current_modifications = parse_serial(current_seq_number)
+
+        # Primeiro, comparar a parte da data
+        if new_date > current_date:
+            print(colored(f"Atualizando versão de {current_seq_number} para {new_seq_number}.", 'yellow'))
+            os.rename(temp_file_path, file_path)
+            needs_update = True
+        elif new_date == current_date and new_modifications > current_modifications:
+            # Se as datas forem iguais, comparar o número de modificações
             print(colored(f"Atualizando versão de {current_seq_number} para {new_seq_number}.", 'yellow'))
             os.rename(temp_file_path, file_path)
             needs_update = True
@@ -61,8 +81,6 @@ def download_and_update_version(url, file_path):
         needs_update = True
 
     return needs_update
-
-
 
 def get_serial_number():
     """
