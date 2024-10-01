@@ -81,27 +81,26 @@ def create_rpz_zone_file(domain_file, output_file, var_domain):
             output.write(f"{domain} IN CNAME .\n")
             output.write(f"*.{domain} IN CNAME .\n")
 
-def reload_unbound_service():
+def restart_unbound_service():
     """
-    Recarrega o serviço Unbound somente se a configuração estiver correta.
+    Reinicia o serviço Unbound somente se a configuração estiver correta.
     """
     try:
         # Verifica se a configuração do Unbound tem erros de sintaxe
         check_result = subprocess.run(['unbound-checkconf'], capture_output=True, text=True)
         if check_result.returncode == 0:  # Sem erros de sintaxe
-            # Recarrega o serviço Unbound
-            reload_result = subprocess.run(['service', 'unbound', 'reload'], capture_output=True, text=True)
-            if reload_result.returncode == 0:
-                print(colored("Serviço Unbound recarregado com sucesso.", 'green'))
+            # Reinicia o serviço Unbound
+            restart_result = subprocess.run(['service', 'unbound', 'restart'], capture_output=True, text=True)
+            if restart_result.returncode == 0:
+                print(colored("Serviço Unbound reiniciado com sucesso.", 'green'))
             else:
-                print("Erro ao recarregar o serviço Unbound:")
-                print(reload_result.stderr)
+                print("Erro ao reiniciar o serviço Unbound:")
+                print(restart_result.stderr)
         else:
             print("Erro na configuração do Unbound:")
             print(check_result.stderr)
     except subprocess.CalledProcessError as e:
         print(f"Erro ao verificar a configuração do Unbound: {e}")
-
 
 def change_permissions(directory):
     """
@@ -131,8 +130,7 @@ def main(var_domain):
         create_rpz_zone_file(domain_list_path, rpz_zone_file, var_domain)
         print(colored("Arquivo de zona RPZ atualizado.", 'green'))
         change_permissions('/etc/unbound/rpz/')
-        reload_unbound_service()  # Agora utilizando reload em vez de restart
-
+        restart_unbound_service()
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
