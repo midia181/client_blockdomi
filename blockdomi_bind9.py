@@ -31,26 +31,51 @@ def get_sequential_number_from_file(filename):
     with open(filename, 'r') as file:
         return int(file.read().strip())
 
+def parse_serial(serial):
+    """
+    Divide o número de série em data e modificações.
+    Exemplo: 2024100102 -> ('20241001', 02)
+    """
+    date_part = serial[:8]
+    modification_part = int(serial[8:])  # O número de modificações deve ser comparado numericamente
+    return date_part, modification_part
+
 def download_and_update_version(url, file_path):
     """
-    Verifica e atualiza o arquivo de versão se necessário.
-    Retorna True se o arquivo for atualizado ou baixado pela primeira vez.
+    Verifica e atualiza o arquivo de versão se o número de série for diferente.
+    Retorna True se o arquivo for atualizado.
     """
     needs_update = False
-    if os.path.exists(file_path):
-        current_seq_number = get_sequential_number_from_file(file_path)
-        temp_file_path = '/tmp/version_temp'
-        download_file(url, temp_file_path)
-        new_seq_number = get_sequential_number_from_file(temp_file_path)
 
-        if new_seq_number > current_seq_number:
+    # Baixa o número de série da URL
+    temp_file_path = '/tmp/version_temp'
+    download_file(url, temp_file_path)
+    new_seq_number = str(get_sequential_number_from_file(temp_file_path))  # Força a conversão para string
+
+    # Verifica o número de série atual do arquivo local
+    if os.path.exists(file_path):
+        current_seq_number = str(get_sequential_number_from_file(file_path))  # Força a conversão para string
+
+        # Divide os números de série em partes de data e modificações
+        new_date, new_modifications = parse_serial(new_seq_number)
+        current_date, current_modifications = parse_serial(current_seq_number)
+
+        # Primeiro, comparar a parte da data
+        if new_date > current_date:
+            print(colored(f"Atualizando versão de {current_seq_number} para {new_seq_number}.", 'yellow'))
+            os.rename(temp_file_path, file_path)
+            needs_update = True
+        elif new_date == current_date and new_modifications > current_modifications:
+            # Se as datas forem iguais, comparar o número de modificações
+            print(colored(f"Atualizando versão de {current_seq_number} para {new_seq_number}.", 'yellow'))
             os.rename(temp_file_path, file_path)
             needs_update = True
         else:
             os.remove(temp_file_path)
-            print(colored("Já está na versão mais atual.", 'green'))
+            print(colored(f"Já está na versão mais atual: {current_seq_number}.", 'green'))
     else:
-        download_file(url, file_path)
+        print(colored(f"Versão local não encontrada, baixando a versão {new_seq_number}.", 'yellow'))
+        os.rename(temp_file_path, file_path)
         needs_update = True
 
     return needs_update
@@ -81,21 +106,21 @@ def create_rpz_zone_file(domain_file, output_file, var_domain):
             output.write(f"{domain} IN CNAME .\n")
             output.write(f"*.{domain} IN CNAME .\n")
 
-def restart_bind_service():
+def reload_bind_service():
     """
-    Reinicia o serviço Bind9 somente se a configuração estiver correta.
+    Recarrega o serviço Bind9 somente se a configuração estiver correta.
     """
     try:
         # Verifica se a configuração do Bind9 tem erros de sintaxe
         check_result = subprocess.run(['named-checkconf'], capture_output=True, text=True)
         if check_result.returncode == 0:  # Sem erros de sintaxe
-            # Reinicia o serviço Bind9
-            restart_result = subprocess.run(['systemctl', 'restart', 'bind9'], capture_output=True, text=True)
-            if restart_result.returncode == 0:
-                print(colored("Serviço Bind9 reiniciado com sucesso.", 'green'))
+            # Recarrega o serviço Bind9
+            reload_result = subprocess.run(['systemctl', 'reload', 'bind9'], capture_output=True, text=True)
+            if reload_result.returncode == 0:
+                print(colored("Serviço Bind9 recarregado com sucesso.", 'green'))
             else:
-                print("Erro ao reiniciar o serviço Bind9:")
-                print(restart_result.stderr)
+                print("Erro ao recarregar o serviço Bind9:")
+                print(reload_result.stderr)
         else:
             print(colored("Erro na configuração do Bind9:", 'red'))
             print(colored(check_result.stderr, 'red'))
@@ -122,7 +147,7 @@ def main(var_domain):
     domain_list_path = '/etc/bind/rpz/domain_all'
     rpz_zone_file = '/etc/bind/rpz/db.rpz.zone.hosts'
 
-    # Garante que o diretório /var/cache/bind/rpz exista
+    # Garante que o diretório /etc/bind/rpz exista
     ensure_directory_exists('/etc/bind/rpz/')
 
     if download_and_update_version(version_url, version_file_path):
@@ -130,7 +155,7 @@ def main(var_domain):
         create_rpz_zone_file(domain_list_path, rpz_zone_file, var_domain)
         print(colored("Arquivo de zona RPZ atualizado.", 'green'))
         change_permissions('/etc/bind/rpz/')
-        restart_bind_service()
+        reload_bind_service()
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
