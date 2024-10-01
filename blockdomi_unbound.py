@@ -46,7 +46,9 @@ def download_and_update_version(url, file_path):
     # Verifica o número de série atual do arquivo local
     if os.path.exists(file_path):
         current_seq_number = get_sequential_number_from_file(file_path)
-        if new_seq_number > current_seq_number:
+
+        # Comparação como strings para preservar a ordem correta
+        if str(new_seq_number) > str(current_seq_number):
             print(colored(f"Atualizando versão de {current_seq_number} para {new_seq_number}.", 'yellow'))
             os.rename(temp_file_path, file_path)
             needs_update = True
@@ -59,6 +61,7 @@ def download_and_update_version(url, file_path):
         needs_update = True
 
     return needs_update
+
 
 
 def get_serial_number():
