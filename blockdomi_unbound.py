@@ -33,27 +33,33 @@ def get_sequential_number_from_file(filename):
 
 def download_and_update_version(url, file_path):
     """
-    Verifica e atualiza o arquivo de versão se necessário.
-    Retorna True se o arquivo for atualizado ou baixado pela primeira vez.
+    Verifica e atualiza o arquivo de versão se o número de série for diferente.
+    Retorna True se o arquivo for atualizado.
     """
     needs_update = False
+
+    # Baixa o número de série da URL
+    temp_file_path = '/tmp/version_temp'
+    download_file(url, temp_file_path)
+    new_seq_number = get_sequential_number_from_file(temp_file_path)
+
+    # Verifica o número de série atual do arquivo local
     if os.path.exists(file_path):
         current_seq_number = get_sequential_number_from_file(file_path)
-        temp_file_path = '/tmp/version_temp'
-        download_file(url, temp_file_path)
-        new_seq_number = get_sequential_number_from_file(temp_file_path)
-
         if new_seq_number > current_seq_number:
+            print(colored(f"Atualizando versão de {current_seq_number} para {new_seq_number}.", 'yellow'))
             os.rename(temp_file_path, file_path)
             needs_update = True
         else:
             os.remove(temp_file_path)
-            print(colored("Já está na versão mais atual.", 'green'))
+            print(colored(f"Já está na versão mais atual: {current_seq_number}.", 'green'))
     else:
-        download_file(url, file_path)
+        print(colored(f"Versão local não encontrada, baixando a versão {new_seq_number}.", 'yellow'))
+        os.rename(temp_file_path, file_path)
         needs_update = True
 
     return needs_update
+
 
 def get_serial_number():
     """
@@ -81,26 +87,27 @@ def create_rpz_zone_file(domain_file, output_file, var_domain):
             output.write(f"{domain} IN CNAME .\n")
             output.write(f"*.{domain} IN CNAME .\n")
 
-def restart_unbound_service():
+def reload_unbound_service():
     """
-    Reinicia o serviço Unbound somente se a configuração estiver correta.
+    Recarrega o serviço Unbound somente se a configuração estiver correta.
     """
     try:
         # Verifica se a configuração do Unbound tem erros de sintaxe
         check_result = subprocess.run(['unbound-checkconf'], capture_output=True, text=True)
         if check_result.returncode == 0:  # Sem erros de sintaxe
-            # Reinicia o serviço Unbound
-            restart_result = subprocess.run(['service', 'unbound', 'restart'], capture_output=True, text=True)
-            if restart_result.returncode == 0:
-                print(colored("Serviço Unbound reiniciado com sucesso.", 'green'))
+            # Recarrega o serviço Unbound
+            reload_result = subprocess.run(['service', 'unbound', 'reload'], capture_output=True, text=True)
+            if reload_result.returncode == 0:
+                print(colored("Serviço Unbound recarregado com sucesso.", 'green'))
             else:
-                print("Erro ao reiniciar o serviço Unbound:")
-                print(restart_result.stderr)
+                print("Erro ao recarregar o serviço Unbound:")
+                print(reload_result.stderr)
         else:
             print("Erro na configuração do Unbound:")
             print(check_result.stderr)
     except subprocess.CalledProcessError as e:
         print(f"Erro ao verificar a configuração do Unbound: {e}")
+
 
 def change_permissions(directory):
     """
@@ -125,12 +132,15 @@ def main(var_domain):
     # Garante que o diretório /etc/unbound/rpz exista
     ensure_directory_exists('/etc/unbound/rpz')
 
+    # Verifica e atualiza a versão se necessário
     if download_and_update_version(version_url, version_file_path):
+        # Baixa a lista de domínios e cria a zona RPZ somente se a versão for atualizada
         download_file(domain_list_url, domain_list_path)
         create_rpz_zone_file(domain_list_path, rpz_zone_file, var_domain)
         print(colored("Arquivo de zona RPZ atualizado.", 'green'))
         change_permissions('/etc/unbound/rpz/')
-        restart_unbound_service()
+        reload_unbound_service()  # Recarrega o Unbound se houver uma atualização
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
