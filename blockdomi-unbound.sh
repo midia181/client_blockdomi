@@ -109,17 +109,17 @@ main() {
   local var_domain="$1"
   local version_url="https://api.blockdomi.com.br/domain/version"
   local domain_list_url="https://api.blockdomi.com.br/domain/all"
-  local version_file_path="/etc/unbound/rpz/version"
-  local domain_list_path="/etc/unbound/rpz/domain_all"
-  local rpz_zone_file="/etc/unbound/blockdomi.conf"
+  local version_file_path="/etc/unbound/blockdomi/version"
+  local domain_list_path="/etc/unbound/blockdomi/domain_all"
+  local rpz_zone_file="/etc/unbound/blockdomi/blockdomi.conf"
 
-  ensure_directory_exists "/etc/unbound/rpz"
+  ensure_directory_exists "/etc/unbound/blockdomi"
 
   if download_and_update_version "$version_url" "$version_file_path"; then
     download_file "$domain_list_url" "$domain_list_path"
     create_rpz_zone_file "$domain_list_path" "$rpz_zone_file" "$var_domain"
     echo -e "\033[0;32mArquivo de configuração do Unbound atualizado para bloqueio.\033[0m"
-    change_permissions "/etc/unbound/rpz/"
+    change_permissions "/etc/unbound/blockdomi"
     reload_unbound_service
   fi
 }
