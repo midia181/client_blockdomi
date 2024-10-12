@@ -70,19 +70,19 @@ create_rpz_zone_file() {
   local serial_number=$(get_serial_number)
 
   {
-    echo "$TTL 1H"
-    echo "@       IN      SOA LOCALHOST. $var_domain. ("
+    echo "\$TTL 1H"
+    echo "@       IN      SOA LOCALHOST. localhost. ("
     echo "                $serial_number      ; Serial"
     echo "                1h              ; Refresh"
     echo "                15m             ; Retry"
     echo "                30d             ; Expire"
     echo "                2h              ; Negative Cache TTL"
     echo "        )"
-    echo "        NS  $var_domain."
+    echo "        NS  localhost."
     echo
     while IFS= read -r domain; do
-      echo "$domain IN CNAME ."
-      echo "*.$domain IN CNAME ."
+      echo "$domain IN CNAME $var_domain."
+      echo "*.$domain IN CNAME $var_domain."
     done < "$domain_file"
   } > "$output_file"
 }
