@@ -59,37 +59,28 @@ download_and_update_version() {
   fi
 }
 
-get_serial_number() {
-  date +"%Y%m%d01"
-}
-
 create_rpz_zone_file() {
   local domain_file="$1"
   local output_file="$2"
   local var_domain="$3"
-  local serial_number=$(get_serial_number)
 
   {
-    echo "$TTL 1H"
-    echo "@       IN      SOA LOCALHOST. $var_domain. ("
-    echo "                $serial_number      ; Serial"
-    echo "                1h              ; Refresh"
-    echo "                15m             ; Retry"
-    echo "                30d             ; Expire"
-    echo "                2h              ; Negative Cache TTL"
-    echo "        )"
-    echo "        NS  $var_domain."
-    echo
     while IFS= read -r domain; do
-      echo "$domain IN CNAME ."
-      echo "*.$domain IN CNAME ."
+      echo "local-zone: \"$domain\" redirect"
+      if [[ "$var_domain" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "local-data: \"$domain A $var_domain\""
+      elif [[ "$var_domain" =~ ^[a-fA-F0-9:]+$ ]]; then
+        echo "local-data: \"$domain AAAA $var_domain\""
+      else
+        echo "local-data: \"$domain CNAME $var_domain\""
+      fi
     done < "$domain_file"
   } > "$output_file"
 }
 
 reload_unbound_service() {
   if unbound-checkconf; then
-    if service unbound reload; then
+    if systemctl reload unbound; then
       echo -e "\033[0;32mServiço Unbound recarregado com sucesso.\033[0m"
     else
       echo "Erro ao recarregar o serviço Unbound."
@@ -120,14 +111,14 @@ main() {
   local domain_list_url="https://api.blockdomi.com.br/domain/all"
   local version_file_path="/etc/unbound/rpz/version"
   local domain_list_path="/etc/unbound/rpz/domain_all"
-  local rpz_zone_file="/etc/unbound/rpz/db.rpz.block.zone.hosts"
+  local rpz_zone_file="/etc/unbound/blockdomi.conf"
 
   ensure_directory_exists "/etc/unbound/rpz"
 
   if download_and_update_version "$version_url" "$version_file_path"; then
     download_file "$domain_list_url" "$domain_list_path"
     create_rpz_zone_file "$domain_list_path" "$rpz_zone_file" "$var_domain"
-    echo -e "\033[0;32mArquivo de zona RPZ atualizado.\033[0m"
+    echo -e "\033[0;32mArquivo de configuração do Unbound atualizado para bloqueio.\033[0m"
     change_permissions "/etc/unbound/rpz/"
     reload_unbound_service
   fi
