@@ -118,17 +118,17 @@ main() {
   local var_domain="$1"
   local version_url="https://api.blockdomi.com.br/domain/version"
   local domain_list_url="https://api.blockdomi.com.br/domain/all"
-  local version_file_path="/etc/bind/rpz/version"
-  local domain_list_path="/etc/bind/rpz/domain_all"
-  local rpz_zone_file="/etc/bind/rpz/db.rpz.zone.hosts"
+  local version_file_path="/etc/bind/blockdomi/version"
+  local domain_list_path="/etc/bind/blockdomi/domain_all"
+  local rpz_zone_file="/etc/bind/blockdomi/db.rpz.zone.hosts"
 
-  ensure_directory_exists "/etc/bind/rpz"
+  ensure_directory_exists "/etc/bind/blockdomi"
 
   if download_and_update_version "$version_url" "$version_file_path"; then
     download_file "$domain_list_url" "$domain_list_path"
     create_rpz_zone_file "$domain_list_path" "$rpz_zone_file" "$var_domain"
     echo -e "\033[0;32mArquivo de zona RPZ atualizado.\033[0m"
-    change_permissions "/etc/bind/rpz/"
+    change_permissions "/etc/bind/blockdomi/"
     reload_bind_service
   fi
 }
